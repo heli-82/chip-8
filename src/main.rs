@@ -1,5 +1,7 @@
 use std::{fs::File, io::Read};
 
+const PROGRAM_OFFSET: u16 = 0x200;
+
 #[derive(Debug)]
 pub struct Ram {
     mem: [u8; 4096],
@@ -46,19 +48,44 @@ impl Ram {
 
 pub struct Display {}
 
+#[derive(Debug)]
+pub struct Cpu {
+    vx: [u8; 16],
+    pc: u16,
+    i: u16,
+}
+
+impl Cpu {
+    pub fn new() -> Self {
+        Self {
+            vx: [0; 16],
+            pc: PROGRAM_OFFSET,
+            i: 0,
+        }
+    }
+    pub fn run_instruction(&mut self, ram: &mut Ram) {}
+}
+
 pub struct Chip8 {
     ram: Ram,
+    cpu: Cpu,
 }
 impl Chip8 {
     pub fn new() -> Self {
-        Self { ram: Ram::new() }
+        Self {
+            ram: Ram::new(),
+            cpu: Cpu::new(),
+        }
     }
 
     pub fn load_rom(&mut self, data: &Vec<u8>) {
-        let offset = 0x200;
         for (i, v) in data.iter().enumerate() {
-            self.ram.write_byte((offset + i) as u16, *v);
+            self.ram.write_byte(PROGRAM_OFFSET + (i as u16), *v);
         }
+    }
+
+    pub fn run_instruction(&mut self) {
+        self.cpu.run_instruction(&mut self.ram);
     }
 }
 
@@ -69,5 +96,6 @@ fn main() {
 
     let mut chip8 = Chip8::new();
     chip8.load_rom(&data);
+    println!("Cpu state: {:x?}", chip8.cpu);
     println!("Ram dump: {:x?}", chip8.ram.mem);
 }
