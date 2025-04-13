@@ -6,8 +6,36 @@ pub struct Ram {
 }
 impl Ram {
     pub fn new() -> Self {
-        Self { mem: [0; 4096] }
+        let mut mem = [0; 4096];
+        let sprites: [[u8; 5]; 16] = [
+            [0xF0, 0x90, 0x90, 0x90, 0xF0],
+            [0x20, 0x60, 0x20, 0x20, 0x70],
+            [0xF0, 0x10, 0xF0, 0x80, 0xF0],
+            [0xF0, 0x10, 0xF0, 0x10, 0xF0],
+            [0x90, 0x90, 0xF0, 0x10, 0x10],
+            [0xF0, 0x80, 0xF0, 0x10, 0xF0],
+            [0xF0, 0x80, 0xF0, 0x90, 0xF0],
+            [0xF0, 0x10, 0x20, 0x40, 0x40],
+            [0xF0, 0x90, 0xF0, 0x90, 0xF0],
+            [0xF0, 0x90, 0xF0, 0x10, 0xF0],
+            [0xF0, 0x90, 0xF0, 0x90, 0x90],
+            [0xE0, 0x90, 0xE0, 0x90, 0xE0],
+            [0xF0, 0x80, 0x80, 0x80, 0xF0],
+            [0xE0, 0x90, 0x90, 0x90, 0xE0],
+            [0xF0, 0x80, 0xF0, 0x80, 0xF0],
+            [0xF0, 0x80, 0xF0, 0x80, 0x80],
+        ];
+        let mut i = 0;
+        for sprite in sprites {
+            for ch in sprite {
+                mem[i] = ch;
+                i += 1;
+            }
+        }
+
+        Self { mem: mem }
     }
+
     pub fn write_byte(&mut self, address: u16, value: u8) {
         self.mem[address as usize] = value;
     }
@@ -15,6 +43,8 @@ impl Ram {
         return self.mem[address as usize];
     }
 }
+
+pub struct Display {}
 
 pub struct Chip8 {
     ram: Ram,
@@ -35,9 +65,9 @@ impl Chip8 {
 fn main() {
     let mut file = File::open("roms/programs/IBM Logo.ch8").unwrap();
     let mut data = Vec::<u8>::new();
-    let size = file.read_to_end(&mut data).unwrap();
+    file.read_to_end(&mut data).unwrap();
 
-    let mut     chip8 = Chip8::new();
+    let mut chip8 = Chip8::new();
     chip8.load_rom(&data);
-    println!("Ram dump: {:?}", chip8.ram.mem);
+    println!("Ram dump: {:x?}", chip8.ram.mem);
 }
