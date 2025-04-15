@@ -79,7 +79,7 @@ impl Cpu {
             ram.mem[(self.pc + 1) as usize] / 16,
             ram.mem[(self.pc + 1) as usize] % 16,
         ];
-
+        let mut skip_pc_inc = false;
         match cmd[0] {
             //0NNN 	Execute machine language subroutine at address NNN
             //00E0 	Clear the screen
@@ -168,26 +168,51 @@ impl Cpu {
                 //8XY6 	Store the value of register VY shifted right one bit in register VX¹
                 //Set register VF to the least significant bit prior to the shift
                 //VY is unchanged
-                6 => {}
+                6 => {
+                    let lsb = self.vx[cmd[2] as usize] % 2;
+                    self.vx[cmd[1] as usize] = self.vx[cmd[2] as usize] >> 1;
+                    self.vx[15] = lsb;
+                }
                 //8XY7 	Set register VX to the value of VY minus VX
                 //Set VF to 00 if a borrow occurs
                 //Set VF to 01 if a borrow does not occur
-                7 => {}
+                7 => {
+                    let borrow = if self.vx[cmd[2] as usize] < self.vx[cmd[1] as usize] {
+                        0
+                    } else {
+                        1
+                    };
+                    self.vx[cmd[1] as usize] = self.vx[cmd[2] as usize] - self.vx[cmd[1] as usize];
+                    self.vx[15] = borrow;
+                }
                 //8XYE 	Store the value of register VY shifted left one bit in register VX¹
                 //Set register VF to the most significant bit prior to the shift
                 //VY is unchanged
-                14 => {}
+                14 => {
+                    let msb = self.vx[cmd[2] as usize] / 128;
+                    self.vx[cmd[1] as usize] = self.vx[cmd[2] as usize] << 1;
+                    self.vx[15] = msb;
+                }
                 _ => {}
             },
             //9XY0 	Skip the following instruction if the value of register VX is not equal to the value of register VY
             //Set VF to 01 if any set pixels are changed to unset, and 00 otherwise
             9 => {}
             //ANNN 	Store memory address NNN in register I
-            10 => {}
+            10 => {
+                self.i = (cmd[1] * 16 * 16 + cmd[2] * 16 + cmd[3]) as u16;
+            }
             //BNNN 	Jump to address NNN + V0
-            11 => {}
+            11 => {
+                self.pc = (cmd[1] * 16 * 16 + cmd[2] * 16 + cmd[3] + self.vx[0]) as u16;
+                skip_pc_inc = true;
+            }
             //CXNN 	Set VX to a random number with a mask of NN
-            12 => {}
+            12 => {
+                let mask = cmd[2]*16 + cmd[3];
+                let n = rand::random::<u8>() & mask;
+                self.vx[cmd[1] as usize] = n;
+            }
             //DXYN 	Draw a sprite at position VX, VY with N bytes of sprite data starting at the address stored in I
             13 => {}
             //EX9E 	Skip the following instruction if the key corresponding to the hex value currently stored in register VX is pressed
@@ -207,7 +232,9 @@ impl Cpu {
             15 => {}
             _ => {}
         }
-        self.pc += 2;
+        if !skip_pc_inc {
+            self.pc += 2
+        };
     }
 }
 
