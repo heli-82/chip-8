@@ -62,6 +62,7 @@ pub struct Cpu {
     vx: [u8; 16],
     pc: u16,
     i: u16,
+    ret_stack: Vec<u16>,
 }
 
 impl Cpu {
@@ -70,6 +71,7 @@ impl Cpu {
             vx: [0; 16],
             pc: PROGRAM_OFFSET,
             i: 0,
+            ret_stack: Vec::new(),
         }
     }
     pub fn run_instruction(&mut self, ram: &mut Ram, display: &mut Display) {
@@ -196,8 +198,11 @@ impl Cpu {
                 _ => {}
             },
             //9XY0 	Skip the following instruction if the value of register VX is not equal to the value of register VY
-            //Set VF to 01 if any set pixels are changed to unset, and 00 otherwise
-            9 => {}
+            9 => {
+                if self.vx[cmd[1] as usize] != self.vx[cmd[2] as usize] {
+                    self.pc += 2;
+                }
+            }
             //ANNN 	Store memory address NNN in register I
             10 => {
                 self.i = (cmd[1] * 16 * 16 + cmd[2] * 16 + cmd[3]) as u16;
@@ -209,7 +214,7 @@ impl Cpu {
             }
             //CXNN 	Set VX to a random number with a mask of NN
             12 => {
-                let mask = cmd[2]*16 + cmd[3];
+                let mask = cmd[2] * 16 + cmd[3];
                 let n = rand::random::<u8>() & mask;
                 self.vx[cmd[1] as usize] = n;
             }
